@@ -6,13 +6,13 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	pbExample "github.com/johanbrandhorst/grpc-gateway-boilerplate/proto"
+	pb "github.com/Abdirahman0022/cawo/proto"
 )
 
 // Backend implements the protobuf interface
 type Backend struct {
 	mu    *sync.RWMutex
-	users []*pbExample.User
+	users []*pb.User
 }
 
 // New initializes a new Backend struct.
@@ -23,11 +23,11 @@ func New() *Backend {
 }
 
 // AddUser adds a user to the in-memory store.
-func (b *Backend) AddUser(ctx context.Context, _ *pbExample.AddUserRequest) (*pbExample.User, error) {
+func (b *Backend) AddUser(ctx context.Context, _ *pb.AddUserRequest) (*pb.User, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	user := &pbExample.User{
+	user := &pb.User{
 		Id: uuid.Must(uuid.NewV4()).String(),
 	}
 	b.users = append(b.users, user)
@@ -36,7 +36,7 @@ func (b *Backend) AddUser(ctx context.Context, _ *pbExample.AddUserRequest) (*pb
 }
 
 // ListUsers lists all users in the store.
-func (b *Backend) ListUsers(_ *pbExample.ListUsersRequest, srv pbExample.UserService_ListUsersServer) error {
+func (b *Backend) ListUsers(_ *pb.ListUsersRequest, srv pb.UserService_ListUsersServer) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
