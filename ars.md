@@ -77,18 +77,18 @@
  The assumptions and limits of the ___CRS___ have been interspersed in the
  ___SRS___ to present the same in their proper context.
 
- **REQUIREMENTS Evaluation DOCUMENT**
+ # **REQUIREMENTS Evaluation DOCUMENT**
 
--   ## System Objectives
+  ## System Objectives
 
-   1.1. The Airline Booking System (___CRS___) is a software application to aid
+  - 1.1. The Airline Booking System (___CRS___) is a software application to aid
     an airline with orders related to making solution reservations,
     which include obstructing, reserving, canceling and rescheduling
     tickets.
 
-  1.2 From the viewpoint of the airline -
+  - 1.2 From the viewpoint of the airline -
 
- - - - 1.2. 1 Minimize repeated work done by the system administrator and
+  - - 1.2.1 Minimize repeated work done by the system administrator and
  reservation clerks.
 
  1.2. 2 Maintain reliability among different access settings, e. g.
