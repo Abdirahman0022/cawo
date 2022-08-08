@@ -99,9 +99,30 @@ ALTER SEQUENCE airlines_id_seq OWNED BY airlines.id;
  --  FROM aircrafts ml;
 
 
+CREATE TABLE IF NOT EXISTS airports (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
+    iata_code text NOT NULL,
+    -- Check if it is a valid airport iata code, e.g. TLV, LAX, etc.
+    CHECK (iata_code ~ '\A[A-Z]{3}\Z'),
+    icao_code text NOT NULL,
+    -- Check if it is a valid airport icao code, e.g. LLBG, KLAX, etc.
+    CHECK (icao_code ~ '\A[A-Z]{4}\Z'),
+    airport_name text NOT NULL,
+  --  subdivision_code text NOT NULL,
+    -- Check if it is a valid ISO 3166-2 subdivision code, e.g. IL-M, US-CA, etc.
+    --CHECK (subdivision_code ~ '\A[A-Z]{2}-[A-Z0-9]{1,3}\Z'),
+    city text NOT NULL,
+  -- we use below command if PostGIS is installed in our system 
+    
+  --  coordinates geography(point) NOT NULL,
+  -- If PostGIS not installed this'll will work
+   -- coordinates point NOT NULL,
+   timezone text NOT NULL,
+    UNIQUE (iata_code, icao_code)
+);
 
 CREATE TABLE IF NOT EXISTS airports_data (
-    airport_code VARCHAR(3) NOT NULL,
+    iata_code VARCHAR(3) NOT NULL,
     airport_name text NOT NULL,
     city text NOT NULL,
     coordinates point NOT NULL,
@@ -109,22 +130,14 @@ CREATE TABLE IF NOT EXISTS airports_data (
 );
 
 
-
-
-CREATE VIEW airports AS
- SELECT ml.airport_code,
-    ml.airport_name AS airport_name,
-    ml.city AS city,
-    ml.coordinates,
-    ml.timezone
-   FROM airports_data ml;
-
-
-
-
 CREATE TABLE IF NOT EXISTS boarding_passes (
     ticket_no VARCHAR(13) NOT NULL,
+    -- Check if it is a valid Ticketing and itinerary identifier eg 160-4837291830
+    --CHECK (ticket_no ~ '\/^[0-9]{3}(-)?[0-9]{10}$/'),
+    
     flight_id integer NOT NULL,
+    -- Check if it is a valid IATA (marketing) flight number eg. 
+   -- CHECK (flight_id ~ '/^([A-Z][\d]|[\d][A-Z]|[A-Z]{2})(\d{1,})$/'),
     boarding_no integer NOT NULL,
     seat_no VARCHAR(4) NOT NULL
 );
@@ -267,9 +280,9 @@ CREATE VIEW flights_v AS
     timezone(arr.timezone, f.actual_arrival) AS actual_arrival_local,
     (f.actual_arrival - f.actual_departure) AS actual_duration
    FROM flights f,
-    airports dep,
+    airports dep, 
     airports arr
-  WHERE ((f.departure_airport = dep.airport_code) AND (f.arrival_airport = arr.airport_code));
+  WHERE ((f.departure_airport = dep.iata_code) AND (f.arrival_airport = arr.iata_code));
 
 
 --
@@ -466,7 +479,7 @@ CREATE VIEW routes AS
    FROM f3,
     airports dep,
     airports arr
-  WHERE ((f3.departure_airport = dep.airport_code) AND (f3.arrival_airport = arr.airport_code));
+  WHERE ((f3.departure_airport = dep.iata_code) AND (f3.arrival_airport = arr.iata_code));
 
 
 --
@@ -714,11 +727,10 @@ ALTER TABLE ONLY flights ALTER COLUMN flight_id SET DEFAULT nextval('flights_fli
 
 
 --
--- Name: airports_data airports_data_pkey; Type: CONSTRAINT; Schema: bookings; Owner: -
+-- Name: airports airports_pkey; Type: CONSTRAINT; Schema: bookings; Owner: -
 --
 
-ALTER TABLE ONLY airports_data
-    ADD CONSTRAINT airports_data_pkey PRIMARY KEY (airport_code);
+--ALTER TABLE ONLY airports  ADD CONSTRAINT airports_pkey PRIMARY KEY (iata_code);
 
 
 --
@@ -812,19 +824,16 @@ ALTER TABLE ONLY flights
 -- Name: flights flights_arrival_airport_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
 --
 
-ALTER TABLE ONLY flights
-    ADD CONSTRAINT flights_arrival_airport_fkey FOREIGN KEY (arrival_airport) REFERENCES airports_data(airport_code);
+-- ALTER TABLE ONLY flights ADD CONSTRAINT flights_arrival_airport_fkey FOREIGN KEY (arrival_airport) REFERENCES airports(iata_code);
 
 
 --
 -- Name: flights flights_departure_airport_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
 --
 
-ALTER TABLE ONLY flights
-    ADD CONSTRAINT flights_departure_airport_fkey FOREIGN KEY (departure_airport) REFERENCES airports_data(airport_code);
+-- ALTER TABLE ONLY flights ADD CONSTRAINT flights_departure_airport_fkey FOREIGN KEY (departure_airport) REFERENCES airports(iata_code);
 
-ALTER TABLE ONLY airlines
-    ADD CONSTRAINT airlines_main_airport_fkey FOREIGN KEY (main_airport) REFERENCES airports_data(airport_code);
+-- ALTER TABLE ONLY airlines ADD CONSTRAINT airlines_main_airport_fkey FOREIGN KEY (main_airport) REFERENCES airports(iata_code);
 
 --
 -- Name: seats seats_aircraft_id_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
@@ -857,8 +866,7 @@ ALTER TABLE ONLY ticket_flights
 ALTER TABLE ONLY tickets
     ADD CONSTRAINT tickets_book_ref_fkey FOREIGN KEY (book_ref) REFERENCES bookings(book_ref);
 
-ALTER TABLE ONLY airlines
-   ADD CONSTRAINT airports_airline_co_fk FOREIGN KEY (main_airport) REFERENCES airports_data (airport_code);
+--ALTER TABLE ONLY airlines ADD CONSTRAINT airports_airline_co_fk FOREIGN KEY (main_airport) REFERENCES airports (iata_code);
 
 
 
@@ -875,7 +883,7 @@ DROP TABLE IF EXISTS airlines CASCADE;
 DROP TABLE IF EXISTS aircrafts CASCADE;
 DROP VIEW IF EXISTS aircrafts CASCADE;
 DROP SEQUENCE IF EXISTS airlines_id_seq CASCADE;
-DROP TABLE IF EXISTS airports_data CASCADE;
+DROP TABLE IF EXISTS airports CASCADE;
 DROP VIEW IF EXISTS airports CASCADE;
 DROP TABLE IF EXISTS boarding_passes CASCADE;
 DROP TABLE IF EXISTS bookings CASCADE;
