@@ -1,9 +1,3 @@
---
--- PostgreSQL database dump
---
-
--- Dumped from database version 9.6.3
--- Dumped by pg_dump version 9.6.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -13,35 +7,6 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
-
-
---
--- Name: flightBookings; Type: DATABASE; Schema: -; Owner: -
---
-
---CREATE DATABASE flightBookings;
-
-
---\connect flightBookings
-
-
---
--- Name: bookings; Type: SCHEMA; Schema: -; Owner: -
---
-
---CREATE SCHEMA bookings;
-
-
---
--- Name: SCHEMA bookings; Type: COMMENT; Schema: -; Owner: -
---
-
--- COMMENT  ON SCHEMA bookings IS 'Airlines flightBookings database schema';
-
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
 
 --CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
@@ -71,32 +36,23 @@ END;
 $$;
 
 
---
--- Name: now(); Type: FUNCTION; Schema: bookings; Owner: -
---
-
-CREATE FUNCTION now() RETURNS TIMESTAMPTZ 
+CREATE FUNCTION now() RETURNS timestamp with time zone
     LANGUAGE sql IMMUTABLE
     AS $$SELECT '2021-10-05 18:00:00'::TIMESTAMP AT TIME ZONE 'Africa/Mogadishu';$$;
 
 
---
--- Name: FUNCTION now(); Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON FUNCTION now() IS 'Point in time according to which the data are generated';
-
-
-CREATE TABLE IF NOT EXISTS airline_company (
-    company_id BIGSERIAL NOT NULL,
+CREATE TABLE IF NOT EXISTS airlines (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
     company_name VARCHAR(50) NOT NULL,
     iata_code VARCHAR(5) NOT NULL,
     main_airport VARCHAR(3) NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT (now())
  -- account numeric NOT NULL,
-    CONSTRAINT airline_company_pk PRIMARY KEY (company_id)
+ --   CONSTRAINT airlines_pk PRIMARY KEY (id)
   );
 
-CREATE SEQUENCE IF NOT EXISTS airline_company_id_seq
+
+CREATE SEQUENCE IF NOT EXISTS airlines_id_seq
     START WITH 4001
     INCREMENT BY 1
     NO MINVALUE
@@ -104,97 +60,45 @@ CREATE SEQUENCE IF NOT EXISTS airline_company_id_seq
     CACHE 1;
 
 
---
--- Name: airline_company_id_seq; Type: SEQUENCE OWNED BY; Schema: bookings; Owner: -
---
-
-ALTER SEQUENCE airline_company_id_seq OWNED BY airline_company.company_id;
 
 
--- Name: aircrafts_data; Type: TABLE; Schema: bookings; Owner: -
---
-
-CREATE TABLE IF NOT EXISTS aircrafts_data (
+ALTER SEQUENCE airlines_id_seq OWNED BY airlines.id;
+  
+  CREATE TABLE aircrafts (
+   -- id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+     id BIGSERIAL PRIMARY KEY NOT NULL,
+    icao_code text NOT NULL,
+    -- Check if it is a valid aircraft icao code, e.g. A5, B487, etc.
+    CHECK (icao_code ~ '\A[A-Z0-9]{2,4}\Z'),
+    iata_code text NOT NULL,
+    -- Check if it is a valid aircraft iata code, e.g. A4F, 313, etc.
+    CHECK (iata_code ~ '\A[A-Z0-9]{3}\Z'),
+    name text NOT NULL,
+    UNIQUE (icao_code, iata_code)
+);
+  
+/*CREATE TABLE IF NOT EXISTS aircraft_model (
+    id BIGSERIAL PRIMARY KEY NOT NULL,
     aircraft_code VARCHAR(3) NOT NULL,
     model jsonb NOT NULL,
     range integer NOT NULL,
     company_id BIGSERIAL NOT NULL,
     CONSTRAINT aircrafts_range_check CHECK ((range > 0)),
-    CONSTRAINT aircrafts_pkey PRIMARY KEY (aircraft_code),
-    CONSTRAINT airline_company_pk FOREIGN KEY (company_id) REFERENCES airline_company (company_id)
+   -- CONSTRAINT aircrafts_pkey PRIMARY KEY (aircraft_code),
+    CONSTRAINT airlines_pk FOREIGN KEY (company_id) REFERENCES airlines (id)
 );
+*/
 
 
---
--- Name: TABLE aircrafts_data; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON TABLE aircrafts_data IS 'Aircrafts (internal data)';
 
 
---
--- Name: COLUMN aircrafts_data.aircraft_code; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts_data.aircraft_code IS 'Aircraft code, IATA';
-
-
---
--- Name: COLUMN aircrafts_data.model; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts_data.model IS 'Aircraft model';
+--CREATE VIEW aircrafts AS
+ --SELECT ml.aircraft_id,
+--    ml.model AS model,
+ --   ml.range
+ --  FROM aircrafts ml;
 
 
---
--- Name: COLUMN aircrafts_data.range; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts_data.range IS 'Maximal flying distance, km';
-
-
---
--- Name: aircrafts; Type: VIEW; Schema: bookings; Owner: -
---
-
-CREATE VIEW aircrafts AS
- SELECT ml.aircraft_code,
-    ml.model AS model,
-    ml.range
-   FROM aircrafts_data ml;
-
-
---
--- Name: VIEW aircrafts; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON VIEW aircrafts IS 'Aircrafts';
-
-
---
--- Name: COLUMN aircrafts.aircraft_code; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts.aircraft_code IS 'Aircraft code, IATA';
-
-
---
--- Name: COLUMN aircrafts.model; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts.model IS 'Aircraft model';
-
-
---
--- Name: COLUMN aircrafts.range; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN aircrafts.range IS 'Maximal flying distance, km';
-
-
---
--- Name: airports_data; Type: TABLE; Schema: bookings; Owner: -
---
 
 CREATE TABLE IF NOT EXISTS airports_data (
     airport_code VARCHAR(3) NOT NULL,
@@ -205,51 +109,7 @@ CREATE TABLE IF NOT EXISTS airports_data (
 );
 
 
---
--- Name: TABLE airports_data; Type: COMMENT; Schema: bookings; Owner: -
---
 
-  COMMENT  ON TABLE airports_data IS 'Airports (internal data)';
-
-
---
--- Name: COLUMN airports_data.airport_code; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports_data.airport_code IS 'Airport code';
-
-
---
--- Name: COLUMN airports_data.airport_name; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports_data.airport_name IS 'Airport name';
-
-
---
--- Name: COLUMN airports_data.city; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports_data.city IS 'City';
-
-
---
--- Name: COLUMN airports_data.coordinates; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports_data.coordinates IS 'Airport coordinates (longitude and latitude)';
-
-
---
--- Name: COLUMN airports_data.timezone; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports_data.timezone IS 'Airport time zone';
-
-
---
--- Name: airports; Type: VIEW; Schema: bookings; Owner: -
---
 
 CREATE VIEW airports AS
  SELECT ml.airport_code,
@@ -260,51 +120,7 @@ CREATE VIEW airports AS
    FROM airports_data ml;
 
 
---
--- Name: VIEW airports; Type: COMMENT; Schema: bookings; Owner: -
---
 
-  COMMENT  ON VIEW airports IS 'Airports';
-
-
---
--- Name: COLUMN airports.airport_code; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports.airport_code IS 'Airport code';
-
-
---
--- Name: COLUMN airports.airport_name; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports.airport_name IS 'Airport name';
-
-
---
--- Name: COLUMN airports.city; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports.city IS 'City';
-
-
---
--- Name: COLUMN airports.coordinates; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports.coordinates IS 'Airport coordinates (longitude and latitude)';
-
-
---
--- Name: COLUMN airports.timezone; Type: COMMENT; Schema: bookings; Owner: -
---
-
-  COMMENT  ON COLUMN airports.timezone IS 'Airport time zone';
-
-
---
--- Name: boarding_passes; Type: TABLE; Schema: bookings; Owner: -
---
 
 CREATE TABLE IF NOT EXISTS boarding_passes (
     ticket_no VARCHAR(13) NOT NULL,
@@ -355,7 +171,7 @@ CREATE TABLE IF NOT EXISTS boarding_passes (
 
 CREATE TABLE IF NOT EXISTS bookings (
     book_ref VARCHAR(6) NOT NULL,
-    book_date TIMESTAMPTZ  NOT NULL,
+    book_date timestamp with time zone NOT NULL,
     total_amount numeric(10,2) NOT NULL
 );
 
@@ -396,20 +212,20 @@ CREATE TABLE IF NOT EXISTS flights (
     flight_id integer NOT NULL,
     flight_no VARCHAR(6) NOT NULL,
     company_id BIGSERIAL NOT NULL,
-    scheduled_departure TIMESTAMPTZ  NOT NULL,
-    scheduled_arrival TIMESTAMPTZ  NOT NULL,
+    scheduled_departure timestamp with time zone NOT NULL,
+    scheduled_arrival timestamp with time zone NOT NULL,
     departure_airport VARCHAR(3) NOT NULL,
     arrival_airport VARCHAR(3) NOT NULL,
     status VARCHAR(20) NOT NULL,
-    aircraft_code VARCHAR(3) NOT NULL,
-    actual_departure TIMESTAMPTZ ,
-    actual_arrival TIMESTAMPTZ ,
+    aircraft_id BIGSERIAL NOT NULL,
+    actual_departure timestamp with time zone,
+    actual_arrival timestamp with time zone,
     
     CONSTRAINT flights_check CHECK ((scheduled_arrival > scheduled_departure)),
     
     CONSTRAINT flights_flight_no_scheduled_departure_key UNIQUE (flight_no, scheduled_departure),
     
-    CONSTRAINT flights_check_airline_company_key UNIQUE (flight_id, company_id),
+    CONSTRAINT flights_check_airlines_key UNIQUE (flight_id, company_id),
     
     CONSTRAINT flights_check1 CHECK (((actual_arrival IS NULL) OR ((actual_departure IS NOT NULL) AND (actual_arrival IS NOT NULL) AND (actual_arrival > actual_departure)))),
     
@@ -444,7 +260,7 @@ CREATE VIEW flights_v AS
     arr.airport_name AS arrival_airport_name,
     arr.city AS arrival_city,
     f.status,
-    f.aircraft_code,
+    f.aircraft_id,
     f.actual_departure,
     timezone(dep.timezone, f.actual_departure) AS actual_departure_local,
     f.actual_arrival,
@@ -562,10 +378,10 @@ CREATE VIEW flights_v AS
 
 
 --
--- Name: COLUMN flights_v.aircraft_code; Type: COMMENT; Schema: bookings; Owner: -
+-- Name: COLUMN flights_v.aircraft_id; Type: COMMENT; Schema: bookings; Owner: -
 --
 
-  COMMENT  ON COLUMN flights_v.aircraft_code IS 'Aircraft code, IATA';
+  COMMENT  ON COLUMN flights_v.aircraft_id IS 'Aircraft code, IATA';
 
 
 --
@@ -613,28 +429,28 @@ CREATE VIEW routes AS
             f2.company_id,
             f2.departure_airport,
             f2.arrival_airport,
-            f2.aircraft_code,
+            f2.aircraft_id,
             f2.duration,
             array_agg(f2.days_of_week) AS days_of_week
            FROM ( SELECT f1.flight_no,
                     f1.company_id,
                     f1.departure_airport,
                     f1.arrival_airport,
-                    f1.aircraft_code,
+                    f1.aircraft_id,
                     f1.duration,
                     f1.days_of_week
                    FROM ( SELECT flights.flight_no,
                    flights.company_id,
                             flights.departure_airport,
                             flights.arrival_airport,
-                            flights.aircraft_code,
+                            flights.aircraft_id,
                             (flights.scheduled_arrival - flights.scheduled_departure) AS duration,
                             (to_char(flights.scheduled_departure, 'ID'::text))::integer AS days_of_week
                            FROM flights) f1
-                  GROUP BY f1.flight_no, f1.company_id, f1.departure_airport, f1.arrival_airport, f1.aircraft_code, f1.duration, f1.days_of_week
-                  ORDER BY f1.flight_no, f1.company_id, f1.departure_airport, f1.arrival_airport, f1.aircraft_code, f1.duration, f1.days_of_week) f2
+                  GROUP BY f1.flight_no, f1.company_id, f1.departure_airport, f1.arrival_airport, f1.aircraft_id, f1.duration, f1.days_of_week
+                  ORDER BY f1.flight_no, f1.company_id, f1.departure_airport, f1.arrival_airport, f1.aircraft_id, f1.duration, f1.days_of_week) f2
           GROUP BY f2.flight_no,
-          f2.company_id, f2.departure_airport, f2.arrival_airport, f2.aircraft_code, f2.duration
+          f2.company_id, f2.departure_airport, f2.arrival_airport, f2.aircraft_id, f2.duration
         )
  SELECT f3.flight_no,
     f3.company_id,
@@ -644,7 +460,7 @@ CREATE VIEW routes AS
     f3.arrival_airport,
     arr.airport_name AS arrival_airport_name,
     arr.city AS arrival_city,
-    f3.aircraft_code,
+    f3.aircraft_id,
     f3.duration,
     f3.days_of_week
    FROM f3,
@@ -710,10 +526,10 @@ CREATE VIEW routes AS
 
 
 --
--- Name: COLUMN routes.aircraft_code; Type: COMMENT; Schema: bookings; Owner: -
+-- Name: COLUMN routes.aircraft_id; Type: COMMENT; Schema: bookings; Owner: -
 --
 
-  COMMENT  ON COLUMN routes.aircraft_code IS 'Aircraft code, IATA';
+  COMMENT  ON COLUMN routes.aircraft_id IS 'Aircraft code, IATA';
 
 
 --
@@ -735,7 +551,7 @@ CREATE VIEW routes AS
 --
 
 CREATE TABLE IF NOT EXISTS seats (
-    aircraft_code VARCHAR(3) NOT NULL,
+    aircraft_id BIGSERIAL NOT NULL,
     seat_no VARCHAR(4) NOT NULL,
     fare_conditions VARCHAR(10) NOT NULL,
     CONSTRAINT seats_fare_conditions_check CHECK (((fare_conditions)::text = ANY (ARRAY[('Economy'::VARCHAR)::text, ('Comfort'::VARCHAR)::text, ('Business'::VARCHAR)::text])))
@@ -750,10 +566,10 @@ CREATE TABLE IF NOT EXISTS seats (
 
 
 --
--- Name: COLUMN seats.aircraft_code; Type: COMMENT; Schema: bookings; Owner: -
+-- Name: COLUMN seats.aircraft_id; Type: COMMENT; Schema: bookings; Owner: -
 --
 
-  COMMENT  ON COLUMN seats.aircraft_code IS 'Aircraft code, IATA';
+  COMMENT  ON COLUMN seats.aircraft_id IS 'Aircraft code, IATA';
 
 
 --
@@ -882,19 +698,19 @@ ALTER TABLE ONLY flights ALTER COLUMN flight_id SET DEFAULT nextval('flights_fli
 
 
 --
--- Data for Name: aircrafts_data; Type: TABLE DATA; Schema: bookings; Owner: -
+-- Data for Name: aircrafts; Type: TABLE DATA; Schema: bookings; Owner: -
 --
 --
--- Data for Name: aircrafts_data; Type: TABLE DATA; Schema: bookings; Owner: -
---
-
-
---
--- Name: aircrafts_data aircrafts_pkey; Type: CONSTRAINT; Schema: bookings; Owner: -
+-- Data for Name: aircrafts; Type: TABLE DATA; Schema: bookings; Owner: -
 --
 
---ALTER TABLE ONLY aircrafts_data
-    --ADD CONSTRAINT aircrafts_pkey PRIMARY KEY (aircraft_code);
+
+--
+-- Name: aircrafts aircrafts_pkey; Type: CONSTRAINT; Schema: bookings; Owner: -
+--
+
+--ALTER TABLE ONLY aircrafts
+    --ADD CONSTRAINT aircrafts_pkey PRIMARY KEY (aircraft_id);
 
 
 --
@@ -957,7 +773,7 @@ ALTER TABLE ONLY flights
 --
 
 ALTER TABLE ONLY seats
-    ADD CONSTRAINT seats_pkey PRIMARY KEY (aircraft_code, seat_no);
+    ADD CONSTRAINT seats_pkey PRIMARY KEY (aircraft_id, seat_no);
 
 
 --
@@ -985,11 +801,11 @@ ALTER TABLE ONLY boarding_passes
 
 
 --
--- Name: flights flights_aircraft_code_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
+-- Name: flights flights_aircraft_id_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
 --
 
 ALTER TABLE ONLY flights
-    ADD CONSTRAINT flights_aircraft_code_fkey FOREIGN KEY (aircraft_code) REFERENCES aircrafts_data(aircraft_code);
+    ADD CONSTRAINT flights_aircraft_id_fkey FOREIGN KEY (aircraft_id) REFERENCES aircrafts(id);
 
 
 --
@@ -1007,15 +823,15 @@ ALTER TABLE ONLY flights
 ALTER TABLE ONLY flights
     ADD CONSTRAINT flights_departure_airport_fkey FOREIGN KEY (departure_airport) REFERENCES airports_data(airport_code);
 
-ALTER TABLE ONLY airline_company
-    ADD CONSTRAINT airline_company_main_airport_fkey FOREIGN KEY (main_airport) REFERENCES airports_data(airport_code);
+ALTER TABLE ONLY airlines
+    ADD CONSTRAINT airlines_main_airport_fkey FOREIGN KEY (main_airport) REFERENCES airports_data(airport_code);
 
 --
--- Name: seats seats_aircraft_code_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
+-- Name: seats seats_aircraft_id_fkey; Type: FK CONSTRAINT; Schema: bookings; Owner: -
 --
 
 ALTER TABLE ONLY seats
-    ADD CONSTRAINT seats_aircraft_code_fkey FOREIGN KEY (aircraft_code) REFERENCES aircrafts_data(aircraft_code) ON DELETE CASCADE;
+    ADD CONSTRAINT seats_aircraft_id_fkey FOREIGN KEY (aircraft_id) REFERENCES aircrafts(id) ON DELETE CASCADE;
 
 
 --
@@ -1041,13 +857,13 @@ ALTER TABLE ONLY ticket_flights
 ALTER TABLE ONLY tickets
     ADD CONSTRAINT tickets_book_ref_fkey FOREIGN KEY (book_ref) REFERENCES bookings(book_ref);
 
-ALTER TABLE ONLY airline_company
+ALTER TABLE ONLY airlines
    ADD CONSTRAINT airports_airline_co_fk FOREIGN KEY (main_airport) REFERENCES airports_data (airport_code);
 
 
 
 ALTER TABLE ONLY flights
-   ADD CONSTRAINT airline_co_fk FOREIGN KEY (company_id) REFERENCES airline_company (company_id);
+   ADD CONSTRAINT airline_co_fk FOREIGN KEY (company_id) REFERENCES airlines (id);
   
   
 
@@ -1055,10 +871,10 @@ ALTER TABLE ONLY flights
 
 ALTER DATABASE flightBookings SET search_path = bookings, public;
 ALTER DATABASE flightBookings SET bookings.lang = en;
-DROP TABLE IF EXISTS airline_company CASCADE;
-DROP TABLE IF EXISTS aircrafts_data CASCADE;
+DROP TABLE IF EXISTS airlines CASCADE;
+DROP TABLE IF EXISTS aircrafts CASCADE;
 DROP VIEW IF EXISTS aircrafts CASCADE;
-DROP SEQUENCE IF EXISTS airline_company_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS airlines_id_seq CASCADE;
 DROP TABLE IF EXISTS airports_data CASCADE;
 DROP VIEW IF EXISTS airports CASCADE;
 DROP TABLE IF EXISTS boarding_passes CASCADE;
