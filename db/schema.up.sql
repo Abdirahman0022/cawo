@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS airports (
    timezone text NOT NULL,
     UNIQUE (iata_code, icao_code)
 );
-
+/*
 CREATE TABLE IF NOT EXISTS airports_data (
     iata_code VARCHAR(3) NOT NULL,
     airport_name text NOT NULL,
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS airports_data (
     timezone text NOT NULL
 );
 
-
+*/
 CREATE TABLE IF NOT EXISTS boarding_passes (
     ticket_no VARCHAR(13) NOT NULL,
     -- Check if it is a valid Ticketing and itinerary identifier eg 160-4837291830
@@ -873,9 +873,9 @@ ALTER TABLE ONLY tickets
 ALTER TABLE ONLY flights
    ADD CONSTRAINT airline_co_fk FOREIGN KEY (company_id) REFERENCES airlines (id);
   
-  
-
 /*--
+  ALTER DATABASE postgres SET search_path = bookings, public;
+
 
 ALTER DATABASE flightBookings SET search_path = bookings, public;
 ALTER DATABASE flightBookings SET bookings.lang = en;
