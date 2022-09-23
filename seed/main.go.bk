@@ -1,0 +1,120 @@
+package main
+
+import (
+	"context"
+	"encoding/csv"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path"
+	"time"
+
+	"github.com/jackc/pgx/v4"
+)
+
+func main() {
+	conn, err := newConn()
+	if err != nil {
+		fmt.Println("newDB", err)
+		return
+	}
+
+	defer func() {
+		_ = conn.Close(context.Background())
+		fmt.Println("closed")
+	}()
+
+	now := time.Now()
+
+	if err := insertsUsers(conn); err != nil {
+		fmt.Println("failed", err)
+		return
+	}
+
+	fmt.Println("total", time.Since(now))
+}
+
+type RowSrc struct {
+	cr     *csv.Reader
+	values []interface{}
+	err    error
+}
+
+func (r *RowSrc) Next() bool {
+	record, err := r.cr.Read()
+	if errors.Is(err, io.EOF) {
+		return false
+	}
+
+	if err != nil {
+		r.err = err
+		return false
+	}
+
+	// INSERT INTO airports("iata_code", "icao_code", "name", "elevation", "city", "country", "state", "lat", "lon", "timezone")
+	r.values = make([]interface{}, 10)
+	r.values[0] = record[0]   // id
+	r.values[1] = record[1]   // iata_code
+	r.values[2] = record[2]   // icao_code
+	r.values[3] = record[3]   // name
+	r.values[4] = record[4]   // elevation
+	r.values[5] = record[5]   // city
+	r.values[6] = record[6]   // country
+	r.values[7] = record[7]   // state
+	r.values[8] = record[8]   // lat
+	r.values[9] = record[9]   // lon
+	r.values[10] = record[10] // timezone
+	return true
+}
+
+func (r *RowSrc) Values() ([]interface{}, error) {
+	return r.values, r.err
+}
+
+func (r *RowSrc) Err() error {
+	return r.err
+}
+
+func insertsUsers(conn *pgx.Conn) error {
+	f, err := os.Open(path.Join("..", "airport"))
+	if err != nil {
+		return fmt.Errorf("os.Open %w", err)
+	}
+
+	rowSrc := RowSrc{
+		cr: csv.NewReader(f),
+	}
+
+	//	id,iata_code,icao_code,name,country,state,city,elevation,lat,lon,timezone
+
+	count, err := conn.CopyFrom(context.Background(), pgx.Identifier{"airports"}, []string{"id", "iata_code", "icao_code", "name", "country", "state", "city", "elevation", "lat", "lon", "timezone"}, &rowSrc)
+	if err != nil {
+		return fmt.Errorf("conn.CopyFrom %w", err)
+	}
+
+	fmt.Println("rows", count)
+
+	return nil
+}
+
+func newConn() (*pgx.Conn, error) {
+	// dsn := url.URL{
+	// 	Scheme: "flight",
+	// 	Host:   "localhost:5432",
+	// 	User:   url.UserPassword("admin", "admin"),
+	// 	Path:   "flight",
+	// }
+	//
+	// q := dsn.Query()
+	// q.Add("sslmode", "disable")
+	//
+	// dsn.RawQuery = q.Encode()
+	//
+	conn, err := pgx.Connect(context.Background(), "postgresql://admin:admin@localhost:5432/flight?sslmode=disable")
+	if err != nil {
+		return nil, fmt.Errorf("pgx.Connect%w", err)
+	}
+
+	return conn, nil
+}
